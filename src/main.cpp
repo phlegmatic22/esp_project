@@ -43,7 +43,7 @@ void setup() {
   }
   Serial.println("");
   Serial.print("Connected to WiFi network with IP Address: ");
-  Serial.println(WiFi.localIP()); // moi moi moi moi
+  Serial.println(WiFi.localIP()); // moi moi moi moi moi
 }
 
 void loop() {
