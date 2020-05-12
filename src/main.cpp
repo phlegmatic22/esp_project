@@ -6,24 +6,28 @@
   #include <ESP8266WiFi.h>
   #include <ESP8266HTTPClient.h>
   #include <WiFiClient.h>
+  #include <DHT.h>
+  #include <Wire.h>
+  #include <Adafruit_Sensor.h>
 #endif
 
+#define DHTPIN 5
+#define DHTTYPE    DHT11     // DHT 22 (AM2302)
+#define SensorPin A0 
 
-const char* ssid = "Jannen_verkko";
-const char* password = "jannejanne";
+float sensorValue = 0; 
+const char* ssid = "Is Is ja Bos Bos";
+const char* password = "Suvi1993";
 
 //Your Domain name with URL path or IP address with path
-const char* serverName = "http://janne.testiosoite.com/esp-post-data.php";
+const char* serverName = "http://188.166.35.117:3000";
 
-// Keep this API Key value to be compatible with the PHP code provided in the project page.
-// If you change the apiKeyValue value, the PHP file /esp-post-data.php also needs to have the same key
-String apiKeyValue = "tPmAT5Ab3j7F9";
-String sensorName = "magneettikenttätutka";
-String sensorLocation = "Toimisto";
+DHT dht(DHTPIN, DHTTYPE);
 
-long randNumber;
-long randNumber2;
-long randNumber3;
+// current temperature & humidity, updated in loop()
+float t = 0.0;
+float h = 0.0;
+
 // the following variables are unsigned longs because the time, measured in
 // milliseconds, will quickly become a bigger number than can be stored in an int.
 unsigned long lastTime = 0;
@@ -34,7 +38,8 @@ unsigned long timerDelay = 30000;
 
 void setup() {
   Serial.begin(115200);
-
+  pinMode(DHTPIN, OUTPUT);
+  pinMode(A0, OUTPUT);
   WiFi.begin(ssid, password);
   Serial.println("Connecting");
   while(WiFi.status() != WL_CONNECTED) {
@@ -47,37 +52,42 @@ void setup() {
 }
 
 void loop() {
+
+
   //Send an HTTP POST request every 10 minutes
   if ((millis() - lastTime) > timerDelay) {
     //Check WiFi connection status
     if(WiFi.status()== WL_CONNECTED){
       HTTPClient http;
-
+      
       // Your Domain name with URL path or IP address with path
-      http.begin(serverName);
+      sensorValue = analogRead(SensorPin);
+      float newT = dht.readTemperature();
 
-      // Specify content-type header
-      http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+      if (isnan(newT)) {
+        Serial.println("Failed to read from DHT sensor!");
+      }
+      delay(20);
+      float newH = dht.readHumidity();
 
+      if (isnan(newH)) {
+        Serial.println("Failed to read from DHT sensor!");
+      }
+      Serial.println(newT);
+      Serial.println(newH);
+
+      Serial.println("irri: "+String(sensorValue,3)+" temp: "+String(newT,3)+" hum: "+String(newH,3)); 
       // Prepare your HTTP POST request data
-      String httpRequestData = "api_key=" + apiKeyValue + "&sensor=" + sensorName
-                            + "&location=" + sensorLocation + "&value1=" + random(300) + "&value2=" + random(300) + "&value3=" + random(300) + "";
+      String httpRequestData = "/data/add/humidity/"+String(newH,3)+"/temperature/"+String(newT,3)+"/irrigationlevel/"+String(sensorValue,3);
+      http.begin(serverName + httpRequestData);
+
       Serial.print("httpRequestData: ");
       Serial.println(httpRequestData);
 
-    
-      //String httpRequestData = "api_key=tPmAT5Ab3j7F9&sensor=BME280&location=Office&value1=24.75&value2=49.54&value3=1005.14";
 
-      // Send HTTP POST request
-      int httpResponseCode = http.POST(httpRequestData);
+      // Send HTTP GET request
+      int httpResponseCode = http.GET();
 
-      // If you need an HTTP request with a content type: text/plain
-      //http.addHeader("Content-Type", "text/plain");
-      //int httpResponseCode = http.POST("Hello, World!");
-
-      // If you need an HTTP request with a content type: application/json, use the following:
-      //http.addHeader("Content-Type", "application/json");
-      //int httpResponseCode = http.POST("{\"value1\":\"19\",\"value2\":\"67\",\"value3\":\"78\"}");
 
       if (httpResponseCode>0) {
         Serial.print("HTTP Response code: ");
@@ -89,6 +99,8 @@ void loop() {
       }
       // Free resources
       http.end();
+
+      delay(1000 * 60 * 30);
     }
     else {
       Serial.println("WiFi Disconnected");
