@@ -20,7 +20,7 @@ const char* ssid = "Is Is ja Bos Bos";
 const char* password = "Suvi1993";
 
 //Your Domain name with URL path or IP address with path
-const char* serverName = "http://188.166.35.117:3000";
+const char* serverName = "http://nappikoiruli.eu";
 
 DHT dht(DHTPIN, DHTTYPE);
 
